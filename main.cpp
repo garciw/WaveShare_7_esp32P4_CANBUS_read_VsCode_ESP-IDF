@@ -293,7 +293,7 @@ void send_CAN_Control_Packet(int boostMode, int tractionVal, bool scramble, bool
     tx_msg.data[1] = tractionVal;
     tx_msg.data[2] = (scramble ? 0x01 : 0) | (valet ? 0x02 : 0);
     
-    twai_transmit(&tx_msg, pdMS_TO_TICKS(10));
+    twai_transmit(&tx_msg, pdMS_TO_TICKS(5));
 }
 
 // ==========================================
@@ -302,9 +302,9 @@ void send_CAN_Control_Packet(int boostMode, int tractionVal, bool scramble, bool
 void LVGLTask(void *pvParameters) {
     uint32_t lastLogic = 0;
     while (true) {
-        if (bsp_display_lock(pdMS_TO_TICKS(10))) {
+        if (bsp_display_lock(pdMS_TO_TICKS(5))) {
             uint32_t now = millis();
-            if (now - lastLogic >= 30) {
+            if (now - lastLogic >= 20) {
                 if (xSemaphoreTake(dataMutex, 0) == pdTRUE) {
                     updateRunningLogic(); 
                     xSemaphoreGive(dataMutex);
@@ -313,7 +313,7 @@ void LVGLTask(void *pvParameters) {
             }
             bsp_display_unlock();
         }
-        vTaskDelay(pdMS_TO_TICKS(16)); 
+        vTaskDelay(pdMS_TO_TICKS(20)); 
     }
 }
 
@@ -343,14 +343,17 @@ extern "C" void app_main(void) {
     // -------------------------------
     // 📺 DISPLAY & UI INIT
     // -------------------------------
+	// 1. Calculate a buffer that is exactly 1/10th of your screen size
+    size_t chunk_buffer_size = (1024 * 600) / 2;         // chunk_buffer_size 10 works good
+
     bsp_display_cfg_t cfg = {
         .lvgl_port_cfg = ESP_LVGL_PORT_INIT_CONFIG(),
-        .buffer_size = BSP_LCD_DRAW_BUFF_SIZE,
-        .double_buffer = BSP_LCD_DRAW_BUFF_DOUBLE,
+        .buffer_size = chunk_buffer_size,              // <--- Use the 1/10th size
+        .double_buffer = false,                       // <--- Turn off double buffering for chunking
         .flags = {
-            .buff_dma = true,
-            .buff_spiram = false,
-            .sw_rotate = true,
+            .buff_dma = true,                       // <--- Let hardware push the pixels
+            .buff_spiram = true,                   // <--- FORCE IT INTO FAST INTERNAL SRAM
+            .sw_rotate = true,                    // <--- No software rotation!
         }
     };
 
@@ -387,5 +390,5 @@ extern "C" void app_main(void) {
     // 🚦 START TASKS
     // -------------------------------
     xTaskCreatePinnedToCore(CAN_Task, "CAN_Task", 8192, NULL, 4, NULL, 1); 
-    xTaskCreatePinnedToCore(LVGLTask, "LVGL_Task", 16384, NULL, 5, NULL, 0);    
+    xTaskCreatePinnedToCore(LVGLTask, "LVGL_Task", 16384, NULL, 10, NULL, 0);    
 }
