@@ -9,6 +9,9 @@
 // Standard ESP-IDF millisecond helper
 #define millis() (uint32_t)(esp_timer_get_time() / 1000)
 
+// This forces the gauge to only print single digits
+static const char * rpm_labels[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", NULL};
+
 // 1. IMAGE DECLARATIONS
 LV_IMG_DECLARE(ui_img_left_png);
 LV_IMG_DECLARE(ui_img_right_png);
@@ -20,10 +23,14 @@ lv_obj_t *ui_MeterRPM = NULL;
 lv_obj_t *ui_NeedleSpeed = NULL;
 lv_obj_t *ui_NeedleRPM = NULL;
 
+lv_obj_t *ui_BarTempBG;
 lv_obj_t *ui_BarTemp;
 lv_obj_t *ui_LabelTempReadout;
+lv_obj_t *ui_LabelTempTitle;
+lv_obj_t *ui_BarFuelBG;
 lv_obj_t *ui_BarFuel;
 lv_obj_t *ui_LabelFuelReadout;
+lv_obj_t *ui_LabelFuelTitle;
 lv_obj_t *ui_ImgLowFuel_Screen7;
 
 lv_obj_t *ui_LabelGear;
@@ -75,20 +82,20 @@ void Style_Scale_Subaru(lv_obj_t *scale) {
     //lv_obj_set_style_radius(scale, LV_RADIUS_CIRCLE, 0);
     
     // Minor Ticks (Black)
-    lv_obj_set_style_length(scale, 12, LV_PART_ITEMS);      
+    lv_obj_set_style_length(scale, 15, LV_PART_ITEMS);      
     lv_obj_set_style_line_color(scale, lv_color_hex(0x000000), LV_PART_ITEMS);
     lv_obj_set_style_line_opa(scale, 255, LV_PART_ITEMS);
     lv_obj_set_style_line_width(scale, 2, LV_PART_ITEMS);
 
     // Major Ticks (Black)
-    lv_obj_set_style_length(scale, 22, LV_PART_INDICATOR);  
+    lv_obj_set_style_length(scale, 23, LV_PART_INDICATOR);  
     lv_obj_set_style_line_color(scale, lv_color_hex(0x000000), LV_PART_INDICATOR);
     lv_obj_set_style_line_opa(scale, 255, LV_PART_INDICATOR);
-    lv_obj_set_style_line_width(scale, 4, LV_PART_INDICATOR);
+    lv_obj_set_style_line_width(scale, 6, LV_PART_INDICATOR);
     
     // Labels (Black)
     lv_obj_set_style_text_color(scale, lv_color_hex(0x000000), LV_PART_MAIN);
-    lv_obj_set_style_text_font(scale, &lv_font_montserrat_22, LV_PART_MAIN);
+    lv_obj_set_style_text_font(scale, &lv_font_montserrat_24, LV_PART_MAIN);
 
     // Main Arc (Black)
     lv_obj_set_style_arc_color(scale, lv_color_hex(0x000000), LV_PART_MAIN);
@@ -99,10 +106,10 @@ void Style_3D_Hub(lv_obj_t *hub) {
     lv_obj_set_style_bg_color(hub, lv_color_hex(0x202020), 0);      
     lv_obj_set_style_bg_grad_color(hub, lv_color_hex(0x000000), 0);
     lv_obj_set_style_bg_grad_dir(hub, LV_GRAD_DIR_VER, 0);
-//lv_obj_set_style_shadow_color(hub, lv_color_hex(0xFF2424), 0);
-//lv_obj_set_style_shadow_width(hub, 50, 0); 
+    //lv_obj_set_style_shadow_color(hub, lv_color_hex(0xFF2424), 0);
+  //  lv_obj_set_style_shadow_width(hub, 50, 0); 
     lv_obj_set_style_radius(hub, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_border_color(hub, lv_color_hex(0x404040), 0);
+    lv_obj_set_style_border_color(hub, lv_color_hex(0xFF2424), 0);
     lv_obj_set_style_border_width(hub, 4, 0);
 }
 
@@ -129,39 +136,53 @@ void Create_Dashboard_Screen7() {
     // =================================================================================
     // 2. RPM GAUGE 
     // =================================================================================
+    
+    // 🛑 THE FIX: Stop the sliding and the square outline!
+
+	
     lv_obj_t * rpm_face = lv_obj_create(ui_Screen7);
+    lv_obj_clear_flag(rpm_face, LV_OBJ_FLAG_SCROLLABLE); 
+    lv_obj_clear_flag(rpm_face, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(rpm_face, 450, 450);
     lv_obj_align(rpm_face, LV_ALIGN_CENTER, -250, -20);
     lv_obj_set_style_bg_color(rpm_face, lv_color_hex(0xFFFFFF), 0); 
     lv_obj_set_style_bg_opa(rpm_face, 255, 0);
     lv_obj_set_style_radius(rpm_face, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_border_width(rpm_face, 4, 0);
+    lv_obj_set_style_border_width(rpm_face, 6, 0);
     lv_obj_set_style_border_color(rpm_face, lv_color_hex(0x666666), 0);
-    lv_obj_set_style_shadow_width(rpm_face, 0, 0);
-    lv_obj_set_style_outline_width(rpm_face, 0, 0);
+    //lv_obj_set_style_shadow_width(rpm_face, 0, 0);
+    //lv_obj_set_style_outline_width(rpm_face, 0, 0);
 
     ui_MeterRPM = lv_scale_create(rpm_face);
+    lv_obj_clear_flag(ui_MeterRPM, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(ui_MeterRPM, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(ui_MeterRPM, 450, 450);
     lv_obj_center(ui_MeterRPM);
     lv_scale_set_mode(ui_MeterRPM, LV_SCALE_MODE_ROUND_INNER);
     lv_scale_set_total_tick_count(ui_MeterRPM, 91);
     lv_scale_set_major_tick_every(ui_MeterRPM, 10);
     lv_scale_set_label_show(ui_MeterRPM, true);
-    lv_scale_set_range(ui_MeterRPM, 0, 9);
+    
+    // Expand the math range to 9000 for high resolution
+    lv_scale_set_range(ui_MeterRPM, 0, 9000); 
+    
+    //Apply the custom text so it still reads 0-9
+    lv_scale_set_text_src(ui_MeterRPM, rpm_labels); 
+    
     lv_scale_set_angle_range(ui_MeterRPM, 270);
     lv_scale_set_rotation(ui_MeterRPM, 135);
     Style_Scale_Subaru(ui_MeterRPM);
 
-    // 🔴 APPLY THE REDLINE SECTION USING YOUR SNIPPET LOGIC
+    // 🔴 UPDATE THE REDLINE🛑 : It must match the new 9000 range!
     lv_scale_section_t * section = lv_scale_add_section(ui_MeterRPM);
-    lv_scale_section_set_range(section, 7, 9);
+    lv_scale_section_set_range(section, 7000, 9000); 
     lv_scale_section_set_style(section, LV_PART_INDICATOR, &section_label_style);
     lv_scale_section_set_style(section, LV_PART_ITEMS, &section_minor_tick_style);
     lv_scale_section_set_style(section, LV_PART_MAIN, &section_main_line_style);
 
     // Needle
     ui_NeedleRPM = lv_line_create(ui_MeterRPM);
-    lv_obj_set_style_line_width(ui_NeedleRPM, 6, 0);
+    lv_obj_set_style_line_width(ui_NeedleRPM, 7, 0);
     lv_obj_set_style_line_color(ui_NeedleRPM, lv_color_hex(0xFF2424), 0);
     lv_obj_set_style_line_rounded(ui_NeedleRPM, true, 0);
 
@@ -180,6 +201,8 @@ void Create_Dashboard_Screen7() {
     // 3. SPEED GAUGE
     // =================================================================================
     lv_obj_t * speed_face = lv_obj_create(ui_Screen7);
+	lv_obj_clear_flag(speed_face, LV_OBJ_FLAG_SCROLLABLE); 
+    lv_obj_clear_flag(speed_face, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(speed_face, 450, 450);
     lv_obj_align(speed_face, LV_ALIGN_CENTER, 250, -20);
     lv_obj_set_style_bg_color(speed_face, lv_color_hex(0xFFFFFF), 0);
@@ -187,10 +210,12 @@ void Create_Dashboard_Screen7() {
     lv_obj_set_style_radius(speed_face, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_border_width(speed_face, 6, 0);                        //4
     lv_obj_set_style_border_color(speed_face, lv_color_hex(0x888888), 0);  //0x666666
-    lv_obj_set_style_shadow_width(speed_face, 0, 0);
-    lv_obj_set_style_outline_width(speed_face, 0, 0);
+   // lv_obj_set_style_shadow_width(speed_face, 0, 0);
+   // lv_obj_set_style_outline_width(speed_face, 0, 0);
 
     ui_MeterSpeed = lv_scale_create(speed_face);
+	lv_obj_clear_flag(ui_MeterSpeed, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_clear_flag(ui_MeterSpeed, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_size(ui_MeterSpeed, 450, 450);
     lv_obj_center(ui_MeterSpeed);
     lv_scale_set_mode(ui_MeterSpeed, LV_SCALE_MODE_ROUND_INNER);
@@ -201,31 +226,11 @@ void Create_Dashboard_Screen7() {
     lv_scale_set_rotation(ui_MeterSpeed, 135);
     lv_scale_set_range(ui_MeterSpeed, 0, useMPH ? 140 : 220);
     Style_Scale_Subaru(ui_MeterSpeed);
-	
-	// 1. Create the GLOW (The fat, transparent bottom layer)
-    // We create a new object specifically for the background glow
-    lv_obj_t * ui_NeedleGlow = lv_line_create(ui_MeterSpeed);
-    lv_obj_set_style_line_width(ui_NeedleGlow, 18, 0); // Make it nice and fat
-    lv_obj_set_style_line_color(ui_NeedleGlow, lv_color_hex(0xFF2424), 0);
-    
-    // 👇 THIS IS THE OPACITY COMMAND 👇
-    // LV_OPA_40 means 40% solid (60% see-through). You can use LV_OPA_10 through LV_OPA_90.
-    lv_obj_set_style_line_opa(ui_NeedleGlow, LV_OPA_90, 0); 
 
+    ui_NeedleSpeed = lv_line_create(ui_MeterSpeed);
+    lv_obj_set_style_line_width(ui_NeedleSpeed, 7, 0); 
+    lv_obj_set_style_line_color(ui_NeedleSpeed, lv_color_hex(0xFF2424), 0);
 
-    // 2. Create the CORE (The thin, solid top layer)
-    // We create this SECOND so LVGL draws it on top of the glow.
-    ui_NeedleSpeed = lv_line_create(ui_MeterSpeed);
-    lv_obj_set_style_line_width(ui_NeedleSpeed, 7, 0); // Keep your crisp 7px core
-    lv_obj_set_style_line_color(ui_NeedleSpeed, lv_color_hex(0xFF2424), 0);
-    
-    // LV_OPA_COVER means 100% solid (no transparency)
-    lv_obj_set_style_line_opa(ui_NeedleSpeed, LV_OPA_COVER, 0);
-/*
-    ui_NeedleSpeed = lv_line_create(ui_MeterSpeed);
-    lv_obj_set_style_line_width(ui_NeedleSpeed, 7, 0);
-    lv_obj_set_style_line_color(ui_NeedleSpeed, lv_color_hex(0xFF2424), 0);
-*/
     ui_LabelSpeedUnit = lv_label_create(ui_MeterSpeed);
     lv_label_set_text(ui_LabelSpeedUnit, useMPH ? "MPH" : "km/h");
     lv_obj_align(ui_LabelSpeedUnit, LV_ALIGN_CENTER, 0, 75); 
@@ -243,25 +248,52 @@ void Create_Dashboard_Screen7() {
     // =================================================================================
     // 4. COOLANT & FUEL BARS
     // =================================================================================
+
+    ui_BarTempBG = lv_bar_create(ui_Screen7);
+    lv_obj_set_size(ui_BarTempBG, 300, 2);    //240,4
+    lv_obj_align(ui_BarTempBG, LV_ALIGN_CENTER, -250, 250);    //200,210
+    lv_obj_set_style_bg_color(ui_BarTempBG, lv_color_hex(0x999999), LV_PART_MAIN);
+
     ui_BarTemp = lv_bar_create(ui_Screen7);
-    lv_obj_set_size(ui_BarTemp, 300, 4);    //240,4
+    lv_obj_set_size(ui_BarTemp, 300, 2);    //240,4
     lv_obj_align(ui_BarTemp, LV_ALIGN_CENTER, -250, 250);    //200,210
     lv_bar_set_range(ui_BarTemp, 50, 130);
-    lv_obj_set_style_bg_color(ui_BarTemp, lv_color_hex(0x444444), LV_PART_MAIN);
     lv_obj_set_style_bg_color(ui_BarTemp, lv_color_hex(0xFFFFFF), LV_PART_INDICATOR);
 
     ui_LabelTempReadout = lv_label_create(ui_Screen7);
     lv_obj_set_style_text_font(ui_LabelTempReadout, &lv_font_montserrat_22, 0);
-    lv_obj_align_to(ui_LabelTempReadout, ui_BarTemp, LV_ALIGN_OUT_TOP_MID, 0, 0);
+    lv_obj_align_to(ui_LabelTempReadout, ui_BarTemp, LV_ALIGN_OUT_TOP_MID, 0, -2);
 
+    ui_LabelTempTitle = lv_label_create(ui_Screen7);
+    lv_label_set_text(ui_LabelTempTitle, "COOLANT");
+    lv_obj_set_style_text_font(ui_LabelTempTitle, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(ui_LabelTempTitle, lv_color_hex(0xAAAAAA), 0);
+    lv_obj_align(ui_LabelTempTitle, LV_ALIGN_CENTER, -250, 600);
+
+     //--------------------------------------------------------------------------
+    //  FUEL GAUGE 
+   //--------------------------------------------------------------
+   
+    ui_BarFuelBG = lv_bar_create(ui_Screen7);
+    lv_obj_set_size(ui_BarFuelBG, 300, 2);    //240,4
+    lv_obj_align(ui_BarFuelBG, LV_ALIGN_CENTER, 250, 250);    //200,210
+    lv_obj_set_style_bg_color(ui_BarFuelBG, lv_color_hex(0x999999), LV_PART_MAIN);
+   
     ui_BarFuel = lv_bar_create(ui_Screen7);
-    lv_obj_set_size(ui_BarFuel, 300, 4);
+    lv_obj_set_size(ui_BarFuel, 300, 2);
     lv_obj_align(ui_BarFuel, LV_ALIGN_CENTER, 250, 250);
     lv_bar_set_range(ui_BarFuel, 0, 100);
+    lv_obj_set_style_bg_color(ui_BarFuel, lv_color_hex(0xFFFFFF), LV_PART_INDICATOR); //0xFF2424
 
     ui_LabelFuelReadout = lv_label_create(ui_Screen7);
     lv_obj_set_style_text_font(ui_LabelFuelReadout, &lv_font_montserrat_22, 0);
-    lv_obj_align_to(ui_LabelFuelReadout, ui_BarFuel, LV_ALIGN_OUT_TOP_MID, 0, 0);  //-5
+    lv_obj_align_to(ui_LabelFuelReadout, ui_BarFuel, LV_ALIGN_OUT_TOP_MID, 0, -2);  //-5
+	
+	ui_LabelFuelTitle = lv_label_create(ui_Screen7);
+    lv_label_set_text(ui_LabelFuelTitle, "FUEL");
+    lv_obj_set_style_text_font(ui_LabelFuelTitle, &lv_font_montserrat_24, 0);
+    lv_obj_set_style_text_color(ui_LabelFuelTitle, lv_color_hex(0xAAAAAA), 0);
+	lv_obj_align(ui_LabelFuelTitle, LV_ALIGN_CENTER, 250, 600);
 
     ui_ImgLowFuel_Screen7 = lv_image_create(ui_Screen7);
     lv_image_set_src(ui_ImgLowFuel_Screen7, &ui_img_lowfuel_png);
@@ -282,8 +314,8 @@ void Update_Dashboard7(const Maxxecu &data) {
     
     // Needle lengths updated to 220 for the massive 450px gauges
     static int lastDrawnRPM = -1;
-    if (abs(receivedData.rpm - lastDrawnRPM) > 30) {
-    lv_scale_set_line_needle_value(ui_MeterRPM, ui_NeedleRPM, 220, data.rpm / 1000.0f);
+    if (abs(receivedData.rpm - lastDrawnRPM) > 10) {
+    lv_scale_set_line_needle_value(ui_MeterRPM, ui_NeedleRPM, 220, data.rpm);
     lastDrawnRPM = receivedData.rpm; 
     }
 
@@ -300,12 +332,30 @@ void Update_Dashboard7(const Maxxecu &data) {
         lv_label_set_text(ui_LabelSpeedUnit, useMPH ? "MPH" : "km/h");
         lastUnit = useMPH;
     }
-
-    lv_bar_set_value(ui_BarTemp, (int)data.coolantTemp, LV_ANIM_ON);
-    lv_label_set_text_fmt(ui_LabelTempReadout, "%.0f °C", data.coolantTemp);
-
+    //COOLANT TEMP UPDATE
+        lv_bar_set_value(ui_BarTemp, (int)data.coolantTemp, LV_ANIM_ON);
+        lv_label_set_text_fmt(ui_LabelTempReadout, "%.0f °C", data.coolantTemp);
+	
+    // Dynamic Color Logic for Coolant
+    if (data.coolantTemp >= 105) {
+        lv_obj_set_style_bg_color(ui_BarTemp, lv_color_hex(0xFF2424), LV_PART_INDICATOR); // Red if Hot
+    } else if (data.coolantTemp <= 65) {
+        lv_obj_set_style_bg_color(ui_BarTemp, lv_color_hex(0x00AAFF), LV_PART_INDICATOR); // Blue if Cold
+    } else {
+        lv_obj_set_style_bg_color(ui_BarTemp, lv_color_hex(0xFFFFFF), LV_PART_INDICATOR); // White if Normal
+    }
+   
+    
+    // 5. FUEL BAR UPDATE
     lv_bar_set_value(ui_BarFuel, (int)data.fuelLevelPercent, LV_ANIM_ON);
-    lv_label_set_text_fmt(ui_LabelFuelReadout, "%.0f %%", data.fuelLevelPercent);
+	lv_label_set_text_fmt(ui_LabelFuelReadout, "%.0f %%", data.fuelLevelPercent);
+	
+            // Dynamic Color Logic for Fuel
+    if (data.fuelLevelPercent <= 15) {
+      lv_obj_set_style_bg_color(ui_BarFuel, lv_color_hex(0xFF2424), LV_PART_INDICATOR); // Red if Low
+    } else {
+      lv_obj_set_style_bg_color(ui_BarFuel, lv_color_hex(0xFFFFFF), LV_PART_INDICATOR); // White if Good
+    }
 
     if (data.fuelLowWarning && (now % 800 < 400)) {
         lv_obj_remove_flag(ui_ImgLowFuel_Screen7, LV_OBJ_FLAG_HIDDEN);

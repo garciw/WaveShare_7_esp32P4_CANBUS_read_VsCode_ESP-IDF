@@ -313,7 +313,7 @@ void LVGLTask(void *pvParameters) {
             }
             bsp_display_unlock();
         }
-        vTaskDelay(pdMS_TO_TICKS(20)); 
+        vTaskDelay(pdMS_TO_TICKS(10));  //20ms
     }
 }
 
@@ -344,7 +344,7 @@ extern "C" void app_main(void) {
     // 📺 DISPLAY & UI INIT
     // -------------------------------
 	// 1. Calculate a buffer that is exactly 1/10th of your screen size
-    size_t chunk_buffer_size = (1024 * 600) / 2;         // chunk_buffer_size 10 works good
+    size_t chunk_buffer_size = (1024 * 600) / 3;         // chunk_buffer_size 10 works good
 
     bsp_display_cfg_t cfg = {
         .lvgl_port_cfg = ESP_LVGL_PORT_INIT_CONFIG(),
