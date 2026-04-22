@@ -73,8 +73,7 @@ void ui_Screen8_screen_init(void)
     lv_obj_set_x(ui_ArcVolume, 57);
     lv_obj_set_y(ui_ArcVolume, 6);
     lv_obj_set_align(ui_ArcVolume, LV_ALIGN_LEFT_MID);
-    lv_arc_set_range(ui_ArcVolume, 0, 21);
-    lv_arc_set_value(ui_ArcVolume, 15);
+    lv_arc_set_value(ui_ArcVolume, 35);
     lv_arc_set_bg_angles(ui_ArcVolume, 129, 51);
     lv_obj_set_style_pad_left(ui_ArcVolume, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_pad_right(ui_ArcVolume, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
