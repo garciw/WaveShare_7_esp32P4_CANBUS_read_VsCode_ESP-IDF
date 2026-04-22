@@ -65,7 +65,7 @@ void Init_Redline_Styles() {
 
     /* Main arc line properties */
     lv_style_set_arc_color(&section_main_line_style, lv_color_hex(0xFF2424));
-    lv_style_set_arc_width(&section_main_line_style, 2); // Match base arc width
+    lv_style_set_arc_width(&section_main_line_style, 4); // Match base arc width2
 
     redline_styles_initialized = true;
 }
@@ -103,14 +103,14 @@ void Style_Scale_Subaru(lv_obj_t *scale) {
 }
 
 void Style_3D_Hub(lv_obj_t *hub) {
-    lv_obj_set_style_bg_color(hub, lv_color_hex(0x202020), 0);      
-    lv_obj_set_style_bg_grad_color(hub, lv_color_hex(0x000000), 0);
+    lv_obj_set_style_bg_color(hub, lv_color_hex(0x888888), 0);     //202020 
+    lv_obj_set_style_bg_grad_color(hub, lv_color_hex(0x000000), 0); //000000
     lv_obj_set_style_bg_grad_dir(hub, LV_GRAD_DIR_VER, 0);
     //lv_obj_set_style_shadow_color(hub, lv_color_hex(0xFF2424), 0);
   //  lv_obj_set_style_shadow_width(hub, 50, 0); 
     lv_obj_set_style_radius(hub, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_border_color(hub, lv_color_hex(0xFF2424), 0);
-    lv_obj_set_style_border_width(hub, 4, 0);
+    lv_obj_set_style_border_width(hub, 3, 0);
 }
 
 // =================================================================================
@@ -209,7 +209,7 @@ void Create_Dashboard_Screen7() {
     lv_obj_set_style_bg_opa(speed_face, 255, 0);
     lv_obj_set_style_radius(speed_face, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_border_width(speed_face, 6, 0);                        //4
-    lv_obj_set_style_border_color(speed_face, lv_color_hex(0x888888), 0);  //0x666666
+    lv_obj_set_style_border_color(speed_face, lv_color_hex(0x666666), 0);  //0x666666  0x888888
    // lv_obj_set_style_shadow_width(speed_face, 0, 0);
    // lv_obj_set_style_outline_width(speed_face, 0, 0);
 
@@ -231,10 +231,6 @@ void Create_Dashboard_Screen7() {
     lv_obj_set_style_line_width(ui_NeedleSpeed, 7, 0); 
     lv_obj_set_style_line_color(ui_NeedleSpeed, lv_color_hex(0xFF2424), 0);
 
-    ui_LabelSpeedUnit = lv_label_create(ui_MeterSpeed);
-    lv_label_set_text(ui_LabelSpeedUnit, useMPH ? "MPH" : "km/h");
-    lv_obj_align(ui_LabelSpeedUnit, LV_ALIGN_CENTER, 0, 75); 
-
     lv_obj_t * speed_hub = lv_obj_create(ui_MeterSpeed);
     lv_obj_set_size(speed_hub, 170, 170);
     lv_obj_center(speed_hub);
@@ -244,7 +240,10 @@ void Create_Dashboard_Screen7() {
     lv_label_set_text(ui_LabelOdo, "000000");
     lv_obj_center(ui_LabelOdo);
     lv_obj_set_style_text_color(ui_LabelOdo, lv_color_white(), 0);
-
+	
+    ui_LabelSpeedUnit = lv_label_create(ui_MeterSpeed);
+    lv_label_set_text(ui_LabelSpeedUnit, useMPH ? "MPH" : "km/h");
+    lv_obj_align(ui_LabelSpeedUnit, LV_ALIGN_CENTER, 300, 150);
     // =================================================================================
     // 4. COOLANT & FUEL BARS
     // =================================================================================
@@ -268,7 +267,7 @@ void Create_Dashboard_Screen7() {
     lv_label_set_text(ui_LabelTempTitle, "COOLANT");
     lv_obj_set_style_text_font(ui_LabelTempTitle, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(ui_LabelTempTitle, lv_color_hex(0xAAAAAA), 0);
-    lv_obj_align(ui_LabelTempTitle, LV_ALIGN_CENTER, -250, 600);
+    lv_obj_align(ui_LabelTempTitle, LV_ALIGN_CENTER, -280, 270);
 
      //--------------------------------------------------------------------------
     //  FUEL GAUGE 
@@ -293,11 +292,11 @@ void Create_Dashboard_Screen7() {
     lv_label_set_text(ui_LabelFuelTitle, "FUEL");
     lv_obj_set_style_text_font(ui_LabelFuelTitle, &lv_font_montserrat_24, 0);
     lv_obj_set_style_text_color(ui_LabelFuelTitle, lv_color_hex(0xAAAAAA), 0);
-	lv_obj_align(ui_LabelFuelTitle, LV_ALIGN_CENTER, 250, 600);
+	lv_obj_align(ui_LabelFuelTitle, LV_ALIGN_CENTER, 260, 270);
 
     ui_ImgLowFuel_Screen7 = lv_image_create(ui_Screen7);
     lv_image_set_src(ui_ImgLowFuel_Screen7, &ui_img_lowfuel_png);
-    lv_obj_align_to(ui_ImgLowFuel_Screen7, ui_BarFuel, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+    lv_obj_align_to(ui_ImgLowFuel_Screen7, ui_BarFuel, LV_ALIGN_OUT_RIGHT_MID, -350, -8);   //10
     lv_obj_add_flag(ui_ImgLowFuel_Screen7, LV_OBJ_FLAG_HIDDEN);
 
     

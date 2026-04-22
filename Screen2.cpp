@@ -183,7 +183,7 @@ void updateDisplay2() {
         if (ui_FUEL1) lv_label_set_text(ui_FUEL1, Fuel_text);
         
         if (ui_FUELBAR1) {
-            lv_bar_set_value(ui_FUELBAR1, (int)currentFuelLevel, LV_ANIM_ON);
+            lv_bar_set_value(ui_FUELBAR1, (int)currentFuelLevel, LV_ANIM_OFF);
             
             if (currentFuelLevel <= 15) {
                  lv_obj_set_style_bg_color(ui_FUELBAR1, lv_color_hex(0xFF2424), LV_PART_INDICATOR);

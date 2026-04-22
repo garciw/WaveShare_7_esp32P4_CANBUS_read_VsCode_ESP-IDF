@@ -10,14 +10,14 @@ file(GLOB_RECURSE UI_SOURCES
     "ui/components/*.c"
 )
 
-# 3. Register it all as one component
+# 3. Register it all as one component (NO REQUIRES LIST!)
 idf_component_register(
     SRCS 
         ${MAIN_SOURCES}
         ${UI_SOURCES}
     INCLUDE_DIRS 
         "." 
-        "ui"         # Crucial for finding ui.h
+        "ui"
         "ui/screens" 
         "ui/fonts" 
         "ui/images"

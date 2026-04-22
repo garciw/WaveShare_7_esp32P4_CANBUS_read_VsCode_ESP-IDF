@@ -7,6 +7,11 @@
 #include "freertos/task.h"
 #include "freertos/semphr.h"
 
+#include "esp_wifi.h"
+#include "esp_event.h"
+#include "nvs_flash.h"
+#include "esp_netif.h"
+
 // 🏎️ NEW: ESP32 CAN-BUS DRIVER
 #include "driver/twai.h" 
 
@@ -38,6 +43,10 @@ extern "C" {
 #include "DragRaceMode.h"
 #include "SpeedLimit.h"
 
+ //Put your home/hotspot Wi-Fi details here!
+#define WIFI_SSID "motog8448"
+#define WIFI_PASS "boxbuzzzz"
+
 #define millis() (uint32_t)(esp_timer_get_time() / 1000)
 #define delay(ms) vTaskDelay(pdMS_TO_TICKS(ms))
 
@@ -46,8 +55,8 @@ extern "C" {
 // ==========================================
 // Trace the CTX and CRX pins from the TJA1051 on your diagram 
 // to find these GPIO numbers:
-#define CAN_TX_PIN GPIO_NUM_22 // Replace with your board's actual TX pin
-#define CAN_RX_PIN GPIO_NUM_21 // Replace with your board's actual RX pin
+#define CAN_TX_PIN GPIO_NUM_22 // board's actual TX pin
+#define CAN_RX_PIN GPIO_NUM_21 // board's actual RX pin
 
 static const char *TAG = "CAN_DASH";
 SemaphoreHandle_t dataMutex;
@@ -77,6 +86,46 @@ void Event_TogglePlay(lv_event_t * e) { togglePlayPause(); }
 void Event_VolumeChange(lv_event_t * e) {
     lv_obj_t * arc = (lv_obj_t *)lv_event_get_target(e); 
     setRadioVolume(lv_arc_get_value(arc));
+}
+
+// 1. Declare the hidden Wi-Fi Remote init function
+  //extern "C" esp_err_t esp_wifi_remote_init(void);
+
+void connect_wifi() {
+    // 1. Initialize NVS Flash
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    // 2. Initialize the Network Interface & Event Loop
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    esp_netif_create_default_wifi_sta();
+
+    // 3. Try to initialize Wi-Fi, but DO NOT CRASH if it fails!
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    esp_err_t wifi_err = esp_wifi_init(&cfg);
+    
+    if (wifi_err != ESP_OK) {
+        printf("⚠️ Wi-Fi Chip (C6) failed to wake up (Error 0x%x). Skipping Wi-Fi so the Dash can run!\n", wifi_err);
+        return; // Exit the Wi-Fi setup gracefully, leaving the dashboard alive!
+    }
+
+    wifi_config_t wifi_config = {};
+    strcpy((char*)wifi_config.sta.ssid, WIFI_SSID);
+    strcpy((char*)wifi_config.sta.password, WIFI_PASS);
+
+    // 4. Connect
+    esp_wifi_set_mode(WIFI_MODE_STA);
+    esp_wifi_set_config(WIFI_IF_STA, &wifi_config);
+    esp_wifi_start();
+    esp_wifi_set_ps(WIFI_PS_NONE);
+    esp_wifi_connect();
+    
+    printf("📡 Wi-Fi Bridge Started! Attempting to connect...\n");
 }
 
 void slip_warning_timer(lv_timer_t * timer) {
@@ -302,7 +351,7 @@ void send_CAN_Control_Packet(int boostMode, int tractionVal, bool scramble, bool
 void LVGLTask(void *pvParameters) {
     uint32_t lastLogic = 0;
     while (true) {
-        if (bsp_display_lock(pdMS_TO_TICKS(5))) {
+        if (bsp_display_lock(pdMS_TO_TICKS(5))) {  //5
             uint32_t now = millis();
             if (now - lastLogic >= 20) {
                 if (xSemaphoreTake(dataMutex, 0) == pdTRUE) {
@@ -313,7 +362,7 @@ void LVGLTask(void *pvParameters) {
             }
             bsp_display_unlock();
         }
-        vTaskDelay(pdMS_TO_TICKS(10));  //20ms
+        vTaskDelay(pdMS_TO_TICKS(10));  //10,20ms
     }
 }
 
@@ -344,7 +393,7 @@ extern "C" void app_main(void) {
     // 📺 DISPLAY & UI INIT
     // -------------------------------
 	// 1. Calculate a buffer that is exactly 1/10th of your screen size
-    size_t chunk_buffer_size = (1024 * 600) / 3;         // chunk_buffer_size 10 works good
+   size_t chunk_buffer_size = (1024 * 600) / 10;         // chunk_buffer_size 1/10 works good
 
     bsp_display_cfg_t cfg = {
         .lvgl_port_cfg = ESP_LVGL_PORT_INIT_CONFIG(),
@@ -355,14 +404,29 @@ extern "C" void app_main(void) {
             .buff_spiram = true,                   // <--- FORCE IT INTO FAST INTERNAL SRAM
             .sw_rotate = true,                    // <--- No software rotation!
         }
+    }; 
+	
+	/* Let the Waveshare BSP handle the perfect memory alignment and buffering!####################################
+    bsp_display_cfg_t cfg = {
+        .lvgl_port_cfg = ESP_LVGL_PORT_INIT_CONFIG(),
+        .buffer_size = 0,         // <--- 0 lets the BSP choose the perfect size
+        .double_buffer = 0,       // <--- 0 lets the BSP configure safe buffering
+        .flags = {
+            .buff_dma = true,
+            .buff_spiram = true,  // <--- Put it back in PSRAM where the hardware expects it!
+            .sw_rotate = false,   // <--- FALSE! This stops the CPU from suffocating!
+        }
     };
-
+//####################################################################
+*/
     bsp_display_start_with_config(&cfg);
     bsp_display_brightness_set(50);
+	
+	// 🔒 LOCK THE DISPLAY BEFORE BUILDING THE UI
+   bsp_display_lock(0);
 
     ui_init();
-    setupRadio();
-    
+
     lv_obj_add_event_cb(ui_BtnNext, Event_NextStation, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(ui_BtnPrev, Event_PrevStation, LV_EVENT_CLICKED, NULL);
     lv_obj_add_event_cb(ui_BtnPlay, Event_TogglePlay, LV_EVENT_CLICKED, NULL);
@@ -386,9 +450,22 @@ extern "C" void app_main(void) {
     lv_timer_create([](lv_timer_t*) { updateWiFiStatusIcon(); }, 1000, NULL);
     lv_timer_create([](lv_timer_t*) { updateLocationData(); }, 10000, NULL); 
     
+	// 🔓 UNLOCK THE DISPLAY SO THE BACKGROUND TASK CAN DRAW IT
+    bsp_display_unlock();
     // -------------------------------
     // 🚦 START TASKS
     // -------------------------------
-    xTaskCreatePinnedToCore(CAN_Task, "CAN_Task", 8192, NULL, 4, NULL, 1); 
-    xTaskCreatePinnedToCore(LVGLTask, "LVGL_Task", 16384, NULL, 10, NULL, 0);    
+    xTaskCreatePinnedToCore(CAN_Task, "CAN_Task", 8192, NULL, 4, NULL, 1);   //CORE1
+    xTaskCreatePinnedToCore(LVGLTask, "LVGL_Task", 16384, NULL, 10, NULL, 0);  
+	// -------------------------------
+    // 📡 START WI-FI IN THE BACKGROUND
+    // -------------------------------
+    // 4. Toss the heavy Wi-Fi and Radio startup onto Core 1 so the UI never freezes
+    xTaskCreatePinnedToCore(
+        [](void *pvParameters) {
+           // connect_wifi();   // Connect to the router
+          //  setupRadio();     // Start the internet radio stream
+            vTaskDelete(NULL); // Task successfully deletes itself when done!
+        },
+        "WiFi_Setup", 8192, NULL, 2, NULL, 1);  //CORE1
 }

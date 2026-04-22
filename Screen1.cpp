@@ -195,7 +195,7 @@ void updateDisplay() {
         if (ui_FUEL) lv_label_set_text(ui_FUEL, Fuel_text);
         
         if (ui_FUELBAR3) {
-            lv_bar_set_value(ui_FUELBAR3, (int)currentFuelLevel, LV_ANIM_ON);
+            lv_bar_set_value(ui_FUELBAR3, (int)currentFuelLevel, LV_ANIM_OFF);
             if (currentFuelLevel <= 15) {
                  lv_obj_set_style_bg_color(ui_FUELBAR3, lv_color_hex(0xFF2424), LV_PART_INDICATOR);
             } else {
